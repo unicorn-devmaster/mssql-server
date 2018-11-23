@@ -13,7 +13,8 @@
     "lint": "eslint . --ignore-path .gitignore",
     "fix": "npm run lint -- --fix",
     "build": "babel src -d lib && webpack -p",
-    "toc": "markdown-toc -i README.md"
+    "toc": "markdown-toc -i README.md",
+    "prepublishOnly": "npm run build && npm version patch"
   },
   "dependencies": {
     "body-parser": "^1.18.3",
