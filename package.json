@@ -64,7 +64,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/typicode/json-server.git"
+    "url": "git://github.com/unicorn-devmaster/mssql-server.git"
   },
   "keywords": [
     "JSON",
