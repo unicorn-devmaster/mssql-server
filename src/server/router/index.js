@@ -34,6 +34,12 @@ module.exports = (config, opts = { foreignKeySuffix: '_id' }) => {
       if (result.recordset !== undefined)
         tables = result.recordset.map(v => v.TABLE_NAME)
 
+      tables = _.filter(tables, table => {
+        if (table === 'database_firewall_rules') return false
+        if (table[0] === '_') return false
+        return true
+      })
+
       // Expose database
       router.db = db
       router.tables = tables
@@ -49,8 +55,6 @@ module.exports = (config, opts = { foreignKeySuffix: '_id' }) => {
 
       // GET /:resource
       tables.forEach(table => {
-        if (table === 'database_firewall_rules') return
-        if (table[0] === '_') return
         router.use(`/${table}`, plural(db, table, opts))
         console.log(`ADD RESOURCE /${table}`)
       })
