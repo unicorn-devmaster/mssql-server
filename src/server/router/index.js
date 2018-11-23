@@ -50,7 +50,7 @@ module.exports = (config, opts = { foreignKeySuffix: '_id' }) => {
       // GET /:resource
       tables.forEach(table => {
         router.use(`/${table}`, plural(db, table, opts))
-        console.log(`ADD ROUTE /${table}`)
+        console.log(`ADD RESOURCE /${table}`)
       })
 
       router.use((req, res) => {

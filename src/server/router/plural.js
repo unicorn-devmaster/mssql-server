@@ -1,7 +1,6 @@
 const express = require('express')
 const _ = require('lodash')
 const squel = require('squel').useFlavour('mssql')
-const write = require('./write')
 const delay = require('./delay')
 
 module.exports = (db, name, opts) => {
@@ -312,19 +311,6 @@ module.exports = (db, name, opts) => {
         console.log(err)
         res.status(400).send(err.originalError.info.message)
       })
-
-    // const resource = db
-    //   .get(name)
-    //   .insert(req.body)
-    //   .value()
-
-    // res.setHeader('Access-Control-Expose-Headers', 'Location')
-    // res.location(`${getFullURL(req)}/${resource.id}`)
-
-    // res.status(201)
-    // res.locals.data = resource
-
-    // next()
   }
 
   // PUT /name/:id
@@ -363,21 +349,6 @@ module.exports = (db, name, opts) => {
         console.log(err)
         res.status(400).send(err.originalError.info.message)
       })
-
-    // let chain = db.get(name)
-
-    // chain =
-    //   req.method === 'PATCH'
-    //     ? chain.updateById(id, req.body)
-    //     : chain.replaceById(id, req.body)
-
-    // const resource = chain.value()
-
-    // if (resource) {
-    //   res.locals.data = resource
-    // }
-
-    // next()
   }
 
   // DELETE /name/:id
@@ -395,40 +366,19 @@ module.exports = (db, name, opts) => {
         console.log(err)
         res.status(400).send(err.originalError.info.message)
       })
-
-    // const resource = db
-    //   .get(name)
-    //   .removeById(req.params.id)
-    //   .value()
-
-    // // Remove dependents documents
-    // const removable = db._.getRemovable(db.getState(), opts)
-    // removable.forEach(item => {
-    //   db.get(item.name)
-    //     .removeById(item.id)
-    //     .value()
-    // })
-
-    // if (resource) {
-    //   res.locals.data = {}
-    // }
-
-    // next()
   }
-
-  const w = write(db)
 
   router
     .route('/')
     .get(list)
-    .post(create, w)
+    .post(create)
 
   router
     .route('/:id')
     .get(show)
-    .put(update, w)
-    .patch(update, w)
-    .delete(destroy, w)
+    .put(update)
+    .patch(update)
+    .delete(destroy)
 
   return router
 }
