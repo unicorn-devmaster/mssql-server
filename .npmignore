@@ -1,3 +1,6 @@
+.DS_Store
+.idea
+.env
 .vscode
 src
 __tests__

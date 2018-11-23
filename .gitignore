@@ -7,4 +7,3 @@ dist
 .idea
 .env
 .vscode
-db.json
