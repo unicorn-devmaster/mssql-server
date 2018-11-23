@@ -1,6 +1,6 @@
-const server = require('./src/server')
-const app = server.create()
-const router = server.router({
+const mssqlServer = require('./src/server')
+const server = mssqlServer.create()
+const router = mssqlServer.router({
   user: process.env.MSSQL_USERNAME || '',
   password: process.env.MSSQL_PASSWORD || '',
   server: process.env.MSSQL_SERVER || '',
@@ -10,12 +10,17 @@ const router = server.router({
     encrypt: true // Use this if you're on Windows Azure
   }
 })
-const middlewares = server.defaults()
+const middlewares = mssqlServer.defaults()
 const port = process.env.PORT || 8080
 
-app.use(middlewares)
-app.use(router)
+const fs = require('fs')
+const routes = JSON.parse(fs.readFileSync('routes.json'))
+const rewriter = mssqlServer.rewriter(routes)
 
-app.listen(port, () => {
+server.use(middlewares)
+server.use(rewriter)
+server.use(router)
+
+server.listen(port, () => {
   console.log('MSSQL REST Server is running on port ' + port)
 })
