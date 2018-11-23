@@ -303,9 +303,14 @@ module.exports = (db, name, opts) => {
     query.setFields(req.body)
     queryRequest(query)
       .then(result => {
-        let query = squel.select().from(name)
-        query.where(`${idField} = ?`, req.body[idField])
-        queryResponseAndNext(query, req, res, next, true)
+        if (req.body[idField] !== undefined) {
+          let query = squel.select().from(name)
+          query.where(`${idField} = ?`, req.body[idField])
+          queryResponseAndNext(query, req, res, next, true)
+        } else {
+          res.locals.data = { rowsAffected: result.rowsAffected }
+          next()
+        }
       })
       .catch(err => {
         console.log(err)
