@@ -1,7 +1,7 @@
 {
-  "name": "json-server",
+  "name": "mssql-server",
   "version": "0.14.0",
-  "description": "Serves JSON files through REST routes.",
+  "description": "Serves MS SQL Server database tables through REST routes.",
   "main": "./lib/server/index.js",
   "bin": "./lib/cli/bin.js",
   "directories": {
@@ -10,7 +10,7 @@
   "scripts": {
     "test": "npm run build && cross-env NODE_ENV=test jest && npm run lint",
     "start": "run-p start:**",
-    "start:babel-node": "babel-node src/cli/bin db.json -r routes.json",
+    "start:babel-node": "babel-node src/cli/bin dsn_string -r routes.json",
     "start:webpack": "webpack -d --watch",
     "lint": "eslint . --ignore-path .gitignore",
     "fix": "npm run lint -- --fix",
@@ -33,12 +33,14 @@
     "lowdb": "^1.0.0",
     "method-override": "^3.0.0",
     "morgan": "^1.9.1",
+    "mssql": "^5.0.0-alpha.1",
     "nanoid": "^2.0.0",
     "object-assign": "^4.0.1",
     "please-upgrade-node": "^3.1.1",
     "pluralize": "^7.0.0",
     "request": "^2.88.0",
     "server-destroy": "^1.0.1",
+    "squel": "^5.12.2",
     "update-notifier": "^2.5.0",
     "yargs": "^12.0.2"
   },
