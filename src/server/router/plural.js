@@ -308,8 +308,32 @@ module.exports = (db, name, opts) => {
           query.where(`${idField} = ?`, req.body[idField])
           queryResponseAndNext(query, req, res, next, true)
         } else {
-          res.locals.data = { rowsAffected: result.rowsAffected }
-          next()
+          if (!result.rowsAffected) {
+            res.locals.data = { rowsAffected: result.rowsAffected }
+            next()
+          } else {
+            queryRequest(`SELECT MAX(${idField}) AS LastID FROM ${name}`)
+              .then(result2 => {
+                var lastId = null
+                try {
+                  lastId = result2.recordset[0].LastID
+                } catch (e) {}
+
+                if (lastId) {
+                  let query = squel.select().from(name)
+                  query.where(`${idField} = ?`, lastId)
+                  queryResponseAndNext(query, req, res, next, true)
+                } else {
+                  res.locals.data = { rowsAffected: result.rowsAffected }
+                  next()
+                }
+              })
+              .catch(err => {
+                console.log(err)
+                res.locals.data = { rowsAffected: result.rowsAffected }
+                next()
+              })
+          }
         }
       })
       .catch(err => {
