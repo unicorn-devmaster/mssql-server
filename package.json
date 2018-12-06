@@ -1,6 +1,6 @@
 {
   "name": "@unicorn-dev/mssql-server",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Serves MSSQL Server database tables through REST routes.",
   "main": "./lib/server/index.js",
   "directories": {
