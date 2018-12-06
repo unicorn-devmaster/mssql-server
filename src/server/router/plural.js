@@ -8,7 +8,7 @@ module.exports = (db, name, opts) => {
   const router = express.Router()
   router.use(delay)
 
-  let idField = 'id'
+  let idField = opts.defaultPrimaryKey
 
   // get fields list
   let columns = []
@@ -137,7 +137,7 @@ module.exports = (db, name, opts) => {
       const isColumn =
         _.filter(columns, column => column.toLowerCase() === path).length > 0
       if (!isColumn) {
-        // console.log('DELETE ' + query)
+        console.log('DELETE QUERY PARAM ' + query)
         delete req.query[query]
       }
     })
@@ -281,7 +281,7 @@ module.exports = (db, name, opts) => {
 
   // POST /name
   function create(req, res, next) {
-    // Automatically delete query parameters that can't be found
+    // Automatically delete body parameters that can't be found
     // in the database
     Object.keys(req.body).forEach(path => {
       if (columns.length === 0) return
@@ -289,7 +289,7 @@ module.exports = (db, name, opts) => {
       const isColumn =
         _.filter(columns, column => column.toLowerCase() === path).length > 0
       if (!isColumn) {
-        console.log('DELETE ' + path)
+        console.log('DELETE BODY PARAM ' + path)
         delete req.body[path]
       }
     })
@@ -323,7 +323,7 @@ module.exports = (db, name, opts) => {
   function update(req, res, next) {
     const id = req.params.id
 
-    // Automatically delete query parameters that can't be found
+    // Automatically delete body parameters that can't be found
     // in the database
     Object.keys(req.body).forEach(path => {
       if (columns.length === 0) return
@@ -331,7 +331,7 @@ module.exports = (db, name, opts) => {
       const isColumn =
         _.filter(columns, column => column.toLowerCase() === path).length > 0
       if (!isColumn) {
-        console.log('DELETE ' + path)
+        console.log('DELETE BODY PARAM ' + path)
         delete req.body[path]
       }
     })
@@ -349,6 +349,103 @@ module.exports = (db, name, opts) => {
         let query = squel.select().from(name)
         query.where(`${idField} = ?`, id)
         queryResponseAndNext(query, req, res, next, true)
+      })
+      .catch(err => {
+        console.log(err)
+        res.status(400).send(err.originalError.info.message)
+      })
+  }
+
+  // PUT /name?attr=&attr=
+  function updateWhere(req, res, next) {
+    // Automatically delete query parameters that can't be found
+    // in the database
+    Object.keys(req.query).forEach(query => {
+      // if (query === 'callback') return
+      // if (query[0] === '_') return
+      if (columns.length === 0) return
+
+      const path = query
+        .replace(/(_lt|_gt|_lte|_gte|_ne|_like|_in)$/, '')
+        .toLowerCase()
+      const isColumn =
+        _.filter(columns, column => column.toLowerCase() === path).length > 0
+      if (!isColumn) {
+        console.log('DELETE QUERY PARAM ' + query)
+        delete req.query[query]
+      }
+    })
+
+    if (_.isEmpty(req.query)) {
+      res.status(400).send('No where conditions')
+      return
+    }
+
+    // Automatically delete body parameters that can't be found
+    // in the database
+    Object.keys(req.body).forEach(path => {
+      if (columns.length === 0) return
+
+      const isColumn =
+        _.filter(columns, column => column.toLowerCase() === path).length > 0
+      if (!isColumn) {
+        console.log('DELETE BODY PARAM ' + path)
+        delete req.body[path]
+      }
+    })
+
+    if (_.isEmpty(req.body)) {
+      res.status(400).send('No input')
+      return
+    }
+
+    let query = squel.update().table(name)
+    query.setFields(req.body)
+
+    Object.keys(req.query).forEach(key => {
+      // Don't take into account JSONP query parameters
+      // jQuery adds a '_' query parameter too
+      if (key !== 'callback' && key !== '_') {
+        // Always use an array, in case req.query is an array
+        const arr = [].concat(req.query[key])
+
+        arr.forEach(function(value) {
+          const isDifferent = /_ne$/.test(key)
+          const isRange =
+            /_lt$/.test(key) ||
+            /_gt$/.test(key) ||
+            /_lte$/.test(key) ||
+            /_gte$/.test(key)
+          const isLike = /_like$/.test(key)
+          const isIn = /_in$/.test(key)
+          const path = key.replace(/(_lt|_gt|_lte|_gte|_ne|_like|_in)$/, '')
+
+          if (isRange) {
+            const op = /_lt$/.test(key)
+              ? '<'
+              : /_gt$/.test(key)
+              ? '>'
+              : /_lte$/.test(key)
+              ? '<='
+              : '>='
+            query.where(`${path} ${op} ?`, value)
+          } else if (isDifferent) {
+            query.where(`${path} != ?`, value)
+          } else if (isLike) {
+            query.where(`${path} LIKE ?`, value)
+          } else if (isIn) {
+            query.where(`${path} IN ?`, value.split(','))
+          } else {
+            query.where(`${path} = ?`, value)
+          }
+        })
+      }
+    })
+
+    queryRequest(query)
+      .then(result => {
+        res.locals.data = { rowsAffected: result.rowsAffected }
+        next()
       })
       .catch(err => {
         console.log(err)
@@ -377,6 +474,7 @@ module.exports = (db, name, opts) => {
     .route('/')
     .get(list)
     .post(create)
+    .put(updateWhere)
 
   router
     .route('/:id')

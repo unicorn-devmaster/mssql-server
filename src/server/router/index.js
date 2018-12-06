@@ -5,8 +5,14 @@ const sql = require('mssql')
 const bodyParser = require('../body-parser')
 const plural = require('./plural')
 const nested = require('./nested')
+const defaultOpts = {
+  defaultPrimaryKey: 'id',
+  foreignKeySuffix: '_id'
+}
 
-module.exports = (config, opts = { foreignKeySuffix: '_id' }) => {
+module.exports = (config, opts = defaultOpts) => {
+  opts = _.merge({}, defaultOpts, opts)
+
   // Create router
   const router = express.Router()
 
@@ -37,10 +43,12 @@ module.exports = (config, opts = { foreignKeySuffix: '_id' }) => {
       tables = _.filter(tables, table => {
         if (table === 'database_firewall_rules') return false
         if (table[0] === '_') return false
+        if (opts.tables !== undefined && !_.includes(opts.tables, table))
+          return false
         return true
       })
 
-      // Expose database
+      // Expose database and tables
       router.db = db
       router.tables = tables
 
