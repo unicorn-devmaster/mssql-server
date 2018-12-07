@@ -132,7 +132,7 @@ module.exports = (db, name, opts) => {
       if (columns.length === 0) return
 
       const path = query
-        .replace(/(_lt|_gt|_lte|_gte|_ne|_like|_in)$/, '')
+        .replace(/(_lt|_gt|_lte|_gte|_ne|_nne|_like|_in)$/, '')
         .toLowerCase()
       const isColumn =
         _.filter(columns, column => column.toLowerCase() === path).length > 0
@@ -169,6 +169,7 @@ module.exports = (db, name, opts) => {
 
         arr.forEach(function(value) {
           const isDifferent = /_ne$/.test(key)
+          const isNullOrDifferent = /_nne$/.test(key)
           const isRange =
             /_lt$/.test(key) ||
             /_gt$/.test(key) ||
@@ -176,7 +177,10 @@ module.exports = (db, name, opts) => {
             /_gte$/.test(key)
           const isLike = /_like$/.test(key)
           const isIn = /_in$/.test(key)
-          const path = key.replace(/(_lt|_gt|_lte|_gte|_ne|_like|_in)$/, '')
+          const path = key.replace(
+            /(_lt|_gt|_lte|_gte|_ne|_nne|_like|_in)$/,
+            ''
+          )
 
           if (isRange) {
             const op = /_lt$/.test(key)
@@ -189,6 +193,8 @@ module.exports = (db, name, opts) => {
             query.where(`${path} ${op} ?`, value)
           } else if (isDifferent) {
             query.where(`${path} != ?`, value)
+          } else if (isNullOrDifferent) {
+            query.where(`(${path} IS NULL OR ${path} != ?)`, value)
           } else if (isLike) {
             query.where(`${path} LIKE ?`, value)
           } else if (isIn) {
@@ -390,7 +396,7 @@ module.exports = (db, name, opts) => {
       if (columns.length === 0) return
 
       const path = query
-        .replace(/(_lt|_gt|_lte|_gte|_ne|_like|_in)$/, '')
+        .replace(/(_lt|_gt|_lte|_gte|_ne|_nne|_like|_in)$/, '')
         .toLowerCase()
       const isColumn =
         _.filter(columns, column => column.toLowerCase() === path).length > 0
@@ -435,6 +441,7 @@ module.exports = (db, name, opts) => {
 
         arr.forEach(function(value) {
           const isDifferent = /_ne$/.test(key)
+          const isNullOrDifferent = /_nne$/.test(key)
           const isRange =
             /_lt$/.test(key) ||
             /_gt$/.test(key) ||
@@ -442,7 +449,10 @@ module.exports = (db, name, opts) => {
             /_gte$/.test(key)
           const isLike = /_like$/.test(key)
           const isIn = /_in$/.test(key)
-          const path = key.replace(/(_lt|_gt|_lte|_gte|_ne|_like|_in)$/, '')
+          const path = key.replace(
+            /(_lt|_gt|_lte|_gte|_ne|_nne|_like|_in)$/,
+            ''
+          )
 
           if (isRange) {
             const op = /_lt$/.test(key)
@@ -455,6 +465,8 @@ module.exports = (db, name, opts) => {
             query.where(`${path} ${op} ?`, value)
           } else if (isDifferent) {
             query.where(`${path} != ?`, value)
+          } else if (isNullOrDifferent) {
+            query.where(`(${path} IS NULL OR ${path} != ?)`, value)
           } else if (isLike) {
             query.where(`${path} LIKE ?`, value)
           } else if (isIn) {
