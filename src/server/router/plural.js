@@ -79,9 +79,15 @@ module.exports = (db, name, opts) => {
         return
       }
 
+      if (req.query._select) isSingular = true
       if (isSingular && result.recordset) {
         if (result.recordset.length > 0) {
-          res.locals.data = result.recordset[0]
+          if (req.query._select) {
+            res.send(result.recordset[0][req.query._select] || '')
+            return
+          } else {
+            res.locals.data = result.recordset[0]
+          }
         } else {
           res.locals.data = {}
           res.status(404).send('Resource unavailable.')
@@ -163,7 +169,7 @@ module.exports = (db, name, opts) => {
     Object.keys(req.query).forEach(key => {
       // Don't take into account JSONP query parameters
       // jQuery adds a '_' query parameter too
-      if (key !== 'callback' && key !== '_') {
+      if (key !== 'callback' && key[0] !== '_') {
         // Always use an array, in case req.query is an array
         const arr = [].concat(req.query[key])
 
@@ -435,7 +441,7 @@ module.exports = (db, name, opts) => {
     Object.keys(req.query).forEach(key => {
       // Don't take into account JSONP query parameters
       // jQuery adds a '_' query parameter too
-      if (key !== 'callback' && key !== '_') {
+      if (key !== 'callback' && key[0] !== '_') {
         // Always use an array, in case req.query is an array
         const arr = [].concat(req.query[key])
 
@@ -506,11 +512,96 @@ module.exports = (db, name, opts) => {
       })
   }
 
+  // DELETE /name?attr=&attr=
+  function destroyWhere(req, res, next) {
+    // Automatically delete query parameters that can't be found
+    // in the database
+    Object.keys(req.query).forEach(query => {
+      // if (query === 'callback') return
+      // if (query[0] === '_') return
+      if (columns.length === 0) return
+
+      const path = query
+        .replace(/(_lt|_gt|_lte|_gte|_ne|_nne|_like|_in)$/, '')
+        .toLowerCase()
+      const isColumn =
+        _.filter(columns, column => column.toLowerCase() === path).length > 0
+      if (!isColumn) {
+        console.log('DELETE QUERY PARAM ' + query)
+        delete req.query[query]
+      }
+    })
+
+    if (_.isEmpty(req.query)) {
+      res.status(400).send('No where conditions')
+      return
+    }
+
+    let query = squel.delete().from(name)
+
+    Object.keys(req.query).forEach(key => {
+      // Don't take into account JSONP query parameters
+      // jQuery adds a '_' query parameter too
+      if (key !== 'callback' && key[0] !== '_') {
+        // Always use an array, in case req.query is an array
+        const arr = [].concat(req.query[key])
+
+        arr.forEach(function(value) {
+          const isDifferent = /_ne$/.test(key)
+          const isNullOrDifferent = /_nne$/.test(key)
+          const isRange =
+            /_lt$/.test(key) ||
+            /_gt$/.test(key) ||
+            /_lte$/.test(key) ||
+            /_gte$/.test(key)
+          const isLike = /_like$/.test(key)
+          const isIn = /_in$/.test(key)
+          const path = key.replace(
+            /(_lt|_gt|_lte|_gte|_ne|_nne|_like|_in)$/,
+            ''
+          )
+
+          if (isRange) {
+            const op = /_lt$/.test(key)
+              ? '<'
+              : /_gt$/.test(key)
+              ? '>'
+              : /_lte$/.test(key)
+              ? '<='
+              : '>='
+            query.where(`${path} ${op} ?`, value)
+          } else if (isDifferent) {
+            query.where(`${path} != ?`, value)
+          } else if (isNullOrDifferent) {
+            query.where(`(${path} IS NULL OR ${path} != ?)`, value)
+          } else if (isLike) {
+            query.where(`${path} LIKE ?`, value)
+          } else if (isIn) {
+            query.where(`${path} IN ?`, value.split(','))
+          } else {
+            query.where(`${path} = ?`, value)
+          }
+        })
+      }
+    })
+
+    queryRequest(query)
+      .then(result => {
+        res.locals.data = { rowsAffected: result.rowsAffected }
+        next()
+      })
+      .catch(err => {
+        console.log(err)
+        res.status(400).send(err.originalError.info.message)
+      })
+  }
+
   router
     .route('/')
     .get(list)
     .post(create)
     .put(updateWhere)
+    .delete(destroyWhere)
 
   router
     .route('/:id')
